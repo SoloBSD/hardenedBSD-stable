@@ -224,8 +224,8 @@ struct thread {
 	struct umtx_q   *td_umtxq;	/* (c?) Link for when we're blocked. */
 	struct vm_domain_policy td_vm_dom_policy;	/* (c) current numa domain policy */
 	lwpid_t		td_tid;		/* (b) Thread ID. */
-	sigqueue_t	td_sigqueue;	/* (c) Sigs arrived, not delivered. */
-#define	td_siglist	td_sigqueue.sq_signals
+	uint64_t	padding1[4];
+	void		*padding2[4];
 	u_char		td_lend_user_pri; /* (t) Lend user pri. */
 
 /* Cleared during fork1() */
@@ -317,7 +317,7 @@ struct thread {
 	} td_state;			/* (t) thread state */
 	union {
 		register_t	tdu_retval[2];
-		off_t		tdu_off;	
+		off_t		tdu_off;
 	} td_uretoff;			/* (k) Syscall aux returns. */
 #define td_retval	td_uretoff.tdu_retval
 	u_int		td_cowgen;	/* (k) Generation of COW pointers. */
@@ -342,6 +342,8 @@ struct thread {
 	int		td_lastcpu;	/* (t) Last cpu we were on. */
 	int		td_oncpu;	/* (t) Which cpu we are on. */
 	sbintime_t	td_sleeptimo;	/* (t) Sleep timeout. */
+	sigqueue_t	td_sigqueue;	/* (c) Sigs arrived, not delivered. */
+#define	td_siglist	td_sigqueue.sq_signals
 };
 
 struct thread0_storage {
@@ -488,6 +490,12 @@ do {									\
 #define	TD_ON_UPILOCK(td)	((td)->td_flags & TDF_UPIBLOCKED)
 #define TD_IS_IDLETHREAD(td)	((td)->td_flags & TDF_IDLETD)
 
+#define	KTDSTATE(td)							\
+	(((td)->td_inhibitors & TDI_SLEEPING) != 0 ? "sleep"  :		\
+	((td)->td_inhibitors & TDI_SUSPENDED) != 0 ? "suspended" :	\
+	((td)->td_inhibitors & TDI_SWAPPED) != 0 ? "swapped" :		\
+	((td)->td_inhibitors & TDI_LOCK) != 0 ? "blocked" :		\
+	((td)->td_inhibitors & TDI_IWAIT) != 0 ? "iwait" : "yielding")
 
 #define	TD_SET_INHIB(td, inhib) do {			\
 	(td)->td_state = TDS_INHIBITED;			\
@@ -623,10 +631,12 @@ struct proc {
 	vm_offset_t	p_timekeep_base;	/* (c) Address of timekeep structure. */
 	vm_offset_t	p_shared_page_base;	/* (c) Address of shared page. */
 	vm_offset_t	p_sigcode_base;	/* (c) Address of sigcode. */
+
+/* End area that is copied on creation. */
+#define	p_endcopy	p_xexit
+
 	u_int		p_xexit;	/* (c) Exit code. */
 	u_int		p_xsig;		/* (c) Stop/kill sig. */
-/* End area that is copied on creation. */
-#define	p_endcopy	p_xsig
 	struct pgrp	*p_pgrp;	/* (c + e) Pointer to process group. */
 	struct knlist	*p_klist;	/* (c) Knotes attached to this proc. */
 	int		p_numthreads;	/* (c) Number of threads. */
@@ -656,6 +666,8 @@ struct proc {
 	LIST_ENTRY(proc) p_orphan;	/* (e) List of orphan processes. */
 	LIST_HEAD(, proc) p_orphans;	/* (e) Pointer to list of orphans. */
 	u_int		p_ptevents;	/* (c) ptrace() event mask. */
+	uint16_t	p_elf_machine;	/* (x) ELF machine type */
+	uint64_t	p_elf_flags;	/* (x) ELF flags */
 };
 
 #define	p_session	p_pgrp->pg_session

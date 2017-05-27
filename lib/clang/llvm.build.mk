@@ -31,7 +31,7 @@ TARGET_ABI=	gnueabi
 .else
 TARGET_ABI=	unknown
 .endif
-OS_VERSION=	freebsd11.0
+OS_VERSION=	freebsd11.1
 
 TARGET_TRIPLE?=	${TARGET_ARCH:C/amd64/x86_64/:C/arm64/aarch64/}-${TARGET_ABI}-${OS_VERSION}
 BUILD_TRIPLE?=	${BUILD_ARCH:C/amd64/x86_64/:C/arm64/aarch64/}-unknown-${OS_VERSION}
@@ -40,11 +40,16 @@ CFLAGS+=	-DLLVM_DEFAULT_TARGET_TRIPLE=\"${TARGET_TRIPLE}\"
 CFLAGS+=	-DLLVM_HOST_TRIPLE=\"${BUILD_TRIPLE}\"
 CFLAGS+=	-DDEFAULT_SYSROOT=\"${TOOLS_PREFIX}\"
 
+CFLAGS+=	-ffunction-sections
+CFLAGS+=	-fdata-sections
+LDFLAGS+=	-Wl,--gc-sections
+
 CXXFLAGS+=	-std=c++11
 CXXFLAGS+=	-fno-exceptions
 CXXFLAGS+=	-fno-rtti
 CXXFLAGS.clang+= -stdlib=libc++
 
 .if ${MACHINE_CPUARCH} == "arm"
+STATIC_CFLAGS+= -mlong-calls
 STATIC_CXXFLAGS+= -mlong-calls
 .endif

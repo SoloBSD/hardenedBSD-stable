@@ -479,11 +479,12 @@ contrib/dev/acpica/components/utilities/utpredef.c	optional acpi
 contrib/dev/acpica/components/utilities/utresrc.c	optional acpi
 contrib/dev/acpica/components/utilities/utstate.c	optional acpi
 contrib/dev/acpica/components/utilities/utstring.c	optional acpi
+contrib/dev/acpica/components/utilities/utstrtoul64.c	optional acpi
 contrib/dev/acpica/components/utilities/utuuid.c	optional acpi acpi_debug
 contrib/dev/acpica/components/utilities/utxface.c	optional acpi
 contrib/dev/acpica/components/utilities/utxferror.c	optional acpi
 contrib/dev/acpica/components/utilities/utxfinit.c	optional acpi
-#contrib/dev/acpica/components/utilities/utxfmutex.c	optional acpi
+contrib/dev/acpica/os_specific/service_layers/osgendbg.c	optional acpi acpi_debug
 contrib/ipfilter/netinet/fil.c	optional ipfilter inet \
 	compile-with "${NORMAL_C} ${NO_WSELF_ASSIGN} -Wno-unused -I$S/contrib/ipfilter"
 contrib/ipfilter/netinet/ip_auth.c optional ipfilter inet \
@@ -663,6 +664,7 @@ dev/acpica/acpi_perf.c		optional acpi
 dev/acpica/acpi_powerres.c	optional acpi
 dev/acpica/acpi_quirk.c		optional acpi
 dev/acpica/acpi_resource.c	optional acpi
+dev/acpica/acpi_container.c	optional acpi
 dev/acpica/acpi_smbat.c		optional acpi
 dev/acpica/acpi_thermal.c	optional acpi
 dev/acpica/acpi_throttle.c	optional acpi
@@ -1450,11 +1452,56 @@ dev/drm/via_map.c		optional viadrm
 dev/drm/via_mm.c		optional viadrm
 dev/drm/via_verifier.c		optional viadrm
 dev/drm/via_video.c		optional viadrm
+dev/drm2/drm_agpsupport.c	optional drm2
+dev/drm2/drm_auth.c		optional drm2
+dev/drm2/drm_bufs.c		optional drm2
+dev/drm2/drm_buffer.c		optional drm2
+dev/drm2/drm_context.c		optional drm2
+dev/drm2/drm_crtc.c		optional drm2
+dev/drm2/drm_crtc_helper.c	optional drm2
+dev/drm2/drm_dma.c		optional drm2
+dev/drm2/drm_dp_helper.c	optional drm2
+dev/drm2/drm_dp_iic_helper.c	optional drm2
+dev/drm2/drm_drv.c		optional drm2
+dev/drm2/drm_edid.c		optional drm2
+dev/drm2/drm_fb_helper.c	optional drm2
+dev/drm2/drm_fops.c		optional drm2
+dev/drm2/drm_gem.c		optional drm2
+dev/drm2/drm_gem_names.c	optional drm2
+dev/drm2/drm_global.c		optional drm2
+dev/drm2/drm_hashtab.c		optional drm2
+dev/drm2/drm_ioctl.c		optional drm2
+dev/drm2/drm_irq.c		optional drm2
+dev/drm2/drm_linux_list_sort.c	optional drm2
+dev/drm2/drm_lock.c		optional drm2
+dev/drm2/drm_memory.c		optional drm2
+dev/drm2/drm_mm.c		optional drm2
+dev/drm2/drm_modes.c		optional drm2
+dev/drm2/drm_pci.c		optional drm2
+dev/drm2/drm_platform.c		optional drm2
+dev/drm2/drm_scatter.c		optional drm2
+dev/drm2/drm_stub.c		optional drm2
+dev/drm2/drm_sysctl.c		optional drm2
+dev/drm2/drm_vm.c		optional drm2
+dev/drm2/drm_os_freebsd.c	optional drm2
+dev/drm2/ttm/ttm_agp_backend.c	optional drm2
+dev/drm2/ttm/ttm_lock.c		optional drm2
+dev/drm2/ttm/ttm_object.c	optional drm2
+dev/drm2/ttm/ttm_tt.c		optional drm2
+dev/drm2/ttm/ttm_bo_util.c	optional drm2
+dev/drm2/ttm/ttm_bo.c		optional drm2
+dev/drm2/ttm/ttm_bo_manager.c	optional drm2
+dev/drm2/ttm/ttm_execbuf_util.c	optional drm2
+dev/drm2/ttm/ttm_memory.c	optional drm2
+dev/drm2/ttm/ttm_page_alloc.c	optional drm2
+dev/drm2/ttm/ttm_bo_vm.c	optional drm2
+dev/drm2/ati_pcigart.c		optional drm2 agp pci
 dev/ed/if_ed.c			optional ed
 dev/ed/if_ed_novell.c		optional ed
 dev/ed/if_ed_rtl80x9.c		optional ed
 dev/ed/if_ed_pccard.c		optional ed pccard
 dev/ed/if_ed_pci.c		optional ed pci
+dev/efidev/efidev.c		optional efirt
 dev/eisa/eisa_if.m		standard
 dev/eisa/eisaconf.c		optional eisa
 dev/e1000/if_em.c		optional em \
@@ -2124,6 +2171,7 @@ dev/mlx/mlx.c			optional mlx
 dev/mlx/mlx_disk.c		optional mlx
 dev/mlx/mlx_pci.c		optional mlx pci
 dev/mly/mly.c			optional mly
+dev/mmc/mmc_subr.c		optional mmc | mmcsd
 dev/mmc/mmc.c			optional mmc
 dev/mmc/mmcbr_if.m		standard
 dev/mmc/mmcbus_if.m		standard
@@ -2771,6 +2819,7 @@ dev/usb/controller/usb_controller.c	optional usb
 #
 # USB storage drivers
 #
+dev/usb/storage/cfumass.c	optional cfumass ctl
 dev/usb/storage/umass.c		optional umass
 dev/usb/storage/urio.c		optional urio
 dev/usb/storage/ustorage_fs.c	optional usfs
@@ -3163,7 +3212,7 @@ geom/geom_disk.c		standard
 geom/geom_dump.c		standard
 geom/geom_event.c		standard
 geom/geom_fox.c			optional geom_fox
-geom/geom_flashmap.c		optional fdt cfi | fdt nand | fdt mx25l
+geom/geom_flashmap.c		optional fdt cfi | fdt nand | fdt mx25l | mmcsd
 geom/geom_io.c			standard
 geom/geom_kern.c		standard
 geom/geom_map.c			optional geom_map
@@ -3810,6 +3859,7 @@ netinet/in_fib.c		optional inet
 netinet/in_gif.c		optional gif inet | netgraph_gif inet
 netinet/ip_gre.c		optional gre inet
 netinet/ip_id.c			optional inet
+netinet/in_jail.c		optional inet
 netinet/in_mcast.c		optional inet
 netinet/in_pcb.c		optional inet | inet6
 netinet/in_pcbgroup.c		optional inet pcbgroup | inet6 pcbgroup
@@ -3876,6 +3926,7 @@ netinet6/in6_cksum.c		optional inet6
 netinet6/in6_fib.c		optional inet6
 netinet6/in6_gif.c		optional gif inet6 | netgraph_gif inet6
 netinet6/in6_ifattach.c		optional inet6
+netinet6/in6_jail.c		optional inet6
 netinet6/in6_mcast.c		optional inet6
 netinet6/in6_pcb.c		optional inet6
 netinet6/in6_pcbgroup.c		optional inet6 pcbgroup
@@ -3938,6 +3989,7 @@ netpfil/ipfw/ip_dummynet.c	optional inet dummynet
 netpfil/ipfw/ip_dn_io.c		optional inet dummynet
 netpfil/ipfw/ip_dn_glue.c	optional inet dummynet
 netpfil/ipfw/ip_fw2.c		optional inet ipfirewall
+netpfil/ipfw/ip_fw_bpf.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_dynamic.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_eaction.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_log.c	optional inet ipfirewall
@@ -3948,6 +4000,24 @@ netpfil/ipfw/ip_fw_table_algo.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_table_value.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_iface.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_nat.c	optional inet ipfirewall_nat
+netpfil/ipfw/nat64/ip_fw_nat64.c	optional inet inet6 ipfirewall \
+	ipfirewall_nat64
+netpfil/ipfw/nat64/nat64lsn.c	optional inet inet6 ipfirewall \
+	ipfirewall_nat64
+netpfil/ipfw/nat64/nat64lsn_control.c	optional inet inet6 ipfirewall \
+	ipfirewall_nat64
+netpfil/ipfw/nat64/nat64stl.c	optional inet inet6 ipfirewall \
+	ipfirewall_nat64
+netpfil/ipfw/nat64/nat64stl_control.c	optional inet inet6 ipfirewall \
+	ipfirewall_nat64
+netpfil/ipfw/nat64/nat64_translate.c	optional inet inet6 ipfirewall \
+	ipfirewall_nat64
+netpfil/ipfw/nptv6/ip_fw_nptv6.c	optional inet inet6 ipfirewall \
+	ipfirewall_nptv6
+netpfil/ipfw/nptv6/nptv6.c	optional inet inet6 ipfirewall \
+	ipfirewall_nptv6
+netpfil/ipfw/pmod/ip_fw_pmod.c	optional inet ipfirewall_pmod
+netpfil/ipfw/pmod/tcpmod.c	optional inet ipfirewall_pmod
 netpfil/pf/if_pflog.c		optional pflog pf inet
 netpfil/pf/if_pfsync.c		optional pfsync pf inet
 netpfil/pf/pf.c			optional pf inet
