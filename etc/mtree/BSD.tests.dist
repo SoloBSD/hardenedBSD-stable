@@ -14,7 +14,11 @@
         ..
         dd
         ..
+        echo
+        ..
         expr
+        ..
+        ln
         ..
         ls
         ..
