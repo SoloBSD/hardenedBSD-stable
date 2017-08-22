@@ -63,6 +63,7 @@ __DEFAULT_YES_OPTIONS = \
     BOOTPARAMD \
     BOOTPD \
     BSD_CPIO \
+    BSD_GREP_FASTMATCH \
     BSDINSTALL \
     BSNMP \
     BZIP2 \
@@ -199,6 +200,8 @@ __DEFAULT_NO_OPTIONS = \
     SHARED_TOOLCHAIN \
     SORT_THREADS \
     SVN \
+    ZONEINFO_LEAPSECONDS_SUPPORT \
+    ZONEINFO_OLD_TIMEZONES_SUPPORT \
 
 
 #
@@ -286,6 +289,11 @@ __DEFAULT_NO_OPTIONS+=PIE
 __DEFAULT_YES_OPTIONS+=SAFESTACK
 .else
 __DEFAULT_NO_OPTIONS+=SAFESTACK
+.endif
+
+.if ${__T:Mmips64*}
+# profiling won't work on MIPS64 because there is only assembly for o32
+BROKEN_OPTIONS+=PROFILE
 .endif
 
 .if ${__T} == "aarch64" || ${__T} == "amd64" || ${__T} == "i386" || \
@@ -388,6 +396,11 @@ MK_DTRACE_TESTS:= no
 
 .if ${MK_TEXTPROC} == "no"
 MK_GROFF:=	no
+.endif
+
+.if ${MK_ZONEINFO} == "no"
+MK_ZONEINFO_LEAPSECONDS_SUPPORT:= no
+MK_ZONEINFO_OLD_TIMEZONES_SUPPORT:= no
 .endif
 
 .if ${MK_CROSS_COMPILER} == "no"

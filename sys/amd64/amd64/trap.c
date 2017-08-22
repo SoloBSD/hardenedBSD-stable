@@ -166,15 +166,21 @@ trap(struct trapframe *frame)
 #ifdef KDTRACE_HOOKS
 	struct reg regs;
 #endif
-	struct thread *td = curthread;
-	struct proc *p = td->td_proc;
+	ksiginfo_t ksi;
+	struct thread *td;
+	struct proc *p;
+	register_t addr;
 #ifdef KDB
 	register_t dr6;
 #endif
-	int i = 0, ucode = 0;
+	int i, ucode;
 	u_int type;
-	register_t addr = 0;
-	ksiginfo_t ksi;
+
+	td = curthread;
+	p = td->td_proc;
+	i = 0;
+	ucode = 0;
+	addr = 0;
 
 	PCPU_INC(cnt.v_trap);
 	type = frame->tf_trapno;
@@ -370,7 +376,7 @@ trap(struct trapframe *frame)
 #ifdef DEV_ISA
 		case T_NMI:
 			nmi_handle_intr(type, frame);
-			break;
+			goto out;
 #endif /* DEV_ISA */
 
 		case T_OFLOW:		/* integer overflow fault */
@@ -408,7 +414,7 @@ trap(struct trapframe *frame)
 			if (dtrace_return_probe_ptr != NULL &&
 			    dtrace_return_probe_ptr(&regs) == 0)
 				goto out;
-			break;
+			goto userout;
 #endif
 		}
 	} else {
