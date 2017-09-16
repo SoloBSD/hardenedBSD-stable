@@ -121,6 +121,7 @@ SUBDIR=	\
 	fdc \
 	fdescfs \
 	${_fe} \
+	${_ffec} \
 	filemon \
 	firewire \
 	firmware \
@@ -243,6 +244,7 @@ SUBDIR=	\
 	${_mlxen} \
 	${_mlx5} \
 	${_mlx5en} \
+	${_mlx5ib} \
 	${_mly} \
 	mmc \
 	mmcsd \
@@ -559,7 +561,9 @@ _agp=		agp
 _an=		an
 _bios=		bios
 _bktr=		bktr
+.if ${MK_SOURCELESS_UCODE} != "no"
 _bxe=		bxe
+.endif
 _cardbus=	cardbus
 _cbb=		cbb
 _cpuctl=	cpuctl
@@ -655,6 +659,7 @@ _iwnfw=		iwnfw
 .if ${MK_OFED} != "no" || defined(ALL_MODULES)
 _mlx4=		mlx4
 _mlx4ib=	mlx4ib
+_mlx5ib=	mlx5ib
 _mlxen=		mlxen
 .endif
 _mlx5=		mlx5
@@ -702,7 +707,9 @@ _ntb=		ntb
 _pms=		pms
 _qlxge=		qlxge
 _qlxgb=		qlxgb
+.if ${MK_SOURCELESS_UCODE} != "no"
 _qlxgbe=	qlxgbe
+.endif
 _qlnx=		qlnx
 _sfxge=		sfxge
 
@@ -774,6 +781,7 @@ _cpufreq=	cpufreq
 _drm=		drm
 _exca=		exca
 _nvram=		powermac_nvram
+_ffec=		ffec
 _pccard=	pccard
 _wi=		wi
 .endif
@@ -797,6 +805,10 @@ _cloudabi32=	cloudabi32
 _cloudabi64=	cloudabi64
 .endif
 
+.endif
+
+.if ${MACHINE_ARCH} == "armv6"
+_ffec=		ffec
 .endif
 
 SUBDIR+=${MODULES_EXTRA}

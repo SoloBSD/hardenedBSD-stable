@@ -340,6 +340,7 @@ contrib/dev/acpica/components/dispatcher/dsmethod.c	optional acpi
 contrib/dev/acpica/components/dispatcher/dsmthdat.c	optional acpi
 contrib/dev/acpica/components/dispatcher/dsobject.c	optional acpi
 contrib/dev/acpica/components/dispatcher/dsopcode.c	optional acpi
+contrib/dev/acpica/components/dispatcher/dspkginit.c	optional acpi
 contrib/dev/acpica/components/dispatcher/dsutils.c	optional acpi
 contrib/dev/acpica/components/dispatcher/dswexec.c	optional acpi
 contrib/dev/acpica/components/dispatcher/dswload.c	optional acpi
@@ -477,6 +478,7 @@ contrib/dev/acpica/components/utilities/utobject.c	optional acpi
 contrib/dev/acpica/components/utilities/utosi.c		optional acpi
 contrib/dev/acpica/components/utilities/utownerid.c	optional acpi
 contrib/dev/acpica/components/utilities/utpredef.c	optional acpi
+contrib/dev/acpica/components/utilities/utresdecode.c	optional acpi acpi_debug
 contrib/dev/acpica/components/utilities/utresrc.c	optional acpi
 contrib/dev/acpica/components/utilities/utstate.c	optional acpi
 contrib/dev/acpica/components/utilities/utstring.c	optional acpi
@@ -1684,13 +1686,13 @@ dev/ie/if_ie.c			optional ie isa nowerror
 dev/ie/if_ie_isa.c		optional ie isa
 dev/iicbus/ad7418.c		optional ad7418
 dev/iicbus/ds1307.c		optional ds1307
-dev/iicbus/ds133x.c		optional ds133x
-dev/iicbus/ds1374.c		optional ds1374
+dev/iicbus/ds13rtc.c		optional ds13rtc | ds133x | ds1374
 dev/iicbus/ds1672.c		optional ds1672
 dev/iicbus/ds3231.c		optional ds3231
 dev/iicbus/icee.c		optional icee
 dev/iicbus/if_ic.c		optional ic
 dev/iicbus/iic.c		optional iic
+dev/iicbus/iic_recover_bus.c	optional iicbus
 dev/iicbus/iicbb.c		optional iicbb
 dev/iicbus/iicbb_if.m		optional iicbb
 dev/iicbus/iicbus.c		optional iicbus
@@ -1699,9 +1701,10 @@ dev/iicbus/iiconf.c		optional iicbus
 dev/iicbus/iicsmb.c		optional iicsmb				\
 	dependency	"iicbus_if.h"
 dev/iicbus/iicoc.c		optional iicoc
+dev/iicbus/isl12xx.c		optional isl12xx
 dev/iicbus/lm75.c		optional lm75
+dev/iicbus/nxprtc.c		optional nxprtc | pcf8563
 dev/iicbus/ofw_iicbus.c		optional fdt iicbus
-dev/iicbus/pcf8563.c		optional pcf8563
 dev/iicbus/s35390a.c		optional s35390a
 dev/iir/iir.c			optional iir
 dev/iir/iir_ctrl.c		optional iir
@@ -2164,6 +2167,7 @@ dev/mii/micphy.c		optional miibus fdt | micphy fdt
 dev/mii/mii.c			optional miibus | mii
 dev/mii/mii_bitbang.c		optional miibus | mii_bitbang
 dev/mii/mii_physubr.c		optional miibus | mii
+dev/mii/mii_fdt.c		optional miibus fdt | mii fdt
 dev/mii/miibus_if.m		optional miibus | mii
 dev/mii/mlphy.c			optional miibus | mlphy
 dev/mii/nsgphy.c		optional miibus | nsgphy
@@ -2182,6 +2186,7 @@ dev/mii/tlphy.c			optional miibus | tlphy
 dev/mii/truephy.c		optional miibus | truephy
 dev/mii/ukphy.c			optional miibus | mii
 dev/mii/ukphy_subr.c		optional miibus | mii
+dev/mii/vscphy.c		optional miibus | vscphy
 dev/mii/xmphy.c			optional miibus | xmphy
 dev/mk48txx/mk48txx.c		optional mk48txx
 dev/mlx/mlx.c			optional mlx
@@ -4291,6 +4296,27 @@ ofed/drivers/net/mlx4/en_rx.c			optional mlxen		\
 ofed/drivers/net/mlx4/en_tx.c			optional mlxen		\
 	no-depend obj-prefix "mlx4_"					\
 	compile-with "${OFED_C_NOIMP} -I$S/ofed/drivers/net/mlx4/"
+
+dev/mlx5/mlx5_ib/mlx5_ib_ah.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_cq.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_doorbell.c		optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_mad.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_main.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_mem.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_mr.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_qp.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_roce.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
+dev/mlx5/mlx5_ib/mlx5_ib_srq.c			optional mlx5ib pci ofed \
+	compile-with "${OFED_C}"
 
 dev/mlx5/mlx5_core/mlx5_alloc.c			optional mlx5 pci	\
 	compile-with "${OFED_C}"

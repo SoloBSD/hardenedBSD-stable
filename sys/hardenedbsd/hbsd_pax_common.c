@@ -231,7 +231,7 @@ pax_check_conflicting_modes(const pax_flag_t mode)
  * 			0 on success
  */
 int
-pax_elf(struct image_params *imgp, struct thread *td, pax_flag_t mode)
+pax_elf(struct thread *td, struct image_params *imgp, const pax_flag_t mode)
 {
 	pax_flag_t flags;
 
@@ -323,8 +323,9 @@ static void
 pax_sysinit(void)
 {
 
-	printf("HBSD: initialize and check HardenedBSD features (version %"PRIu64").\n",
-	    (uint64_t)__HardenedBSD_version);
+	printf("HardenedBSD: initialize and check features "
+	    "(__HardenedBSD_version %"PRIu64" __FreeBSD_version %"PRIu64").\n",
+	    (uint64_t)__HardenedBSD_version, (uint64_t)__FreeBSD_version);
 }
 SYSINIT(pax, SI_SUB_PAX, SI_ORDER_FIRST, pax_sysinit, NULL);
 
@@ -355,3 +356,14 @@ pax_init_prison(struct prison *pr)
 	pax_log_init_prison(pr);
 }
 
+/*
+ * This function used from traps / panics.
+ */
+void
+pax_print_hbsd_context(void)
+{
+
+	printf("__HardenedBSD_version = %"PRIu64" __FreeBSD_version = %"PRIu64"\n",
+	    (uint64_t)__HardenedBSD_version, (uint64_t)__FreeBSD_version);
+	printf("version = %s", version);
+}

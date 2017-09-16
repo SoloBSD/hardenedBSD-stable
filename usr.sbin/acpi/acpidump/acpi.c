@@ -1115,7 +1115,8 @@ static const char *srat_types[] = {
     [ACPI_SRAT_TYPE_CPU_AFFINITY] = "CPU",
     [ACPI_SRAT_TYPE_MEMORY_AFFINITY] = "Memory",
     [ACPI_SRAT_TYPE_X2APIC_CPU_AFFINITY] = "X2APIC",
-    [ACPI_SRAT_TYPE_GICC_AFFINITY] = "GICC"
+    [ACPI_SRAT_TYPE_GICC_AFFINITY] = "GICC",
+    [ACPI_SRAT_TYPE_GIC_ITS_AFFINITY] = "GIC ITS",
 };
 
 static void
@@ -1276,7 +1277,7 @@ acpi_print_nfit(ACPI_NFIT_HEADER *nfit)
 		    (u_int)ctlreg->SubsystemDeviceId);
 		printf("\tSubsystemRevisionId=%u\n",
 		    (u_int)ctlreg->SubsystemRevisionId);
-		printf("\tValidFields=%u\n", (u_int)ctlreg->ValidFields);
+		printf("\tValidFields=0x%02x\n", (u_int)ctlreg->ValidFields);
 		printf("\tManufacturingLocation=%u\n",
 		    (u_int)ctlreg->ManufacturingLocation);
 		printf("\tManufacturingDate=%u\n",
@@ -1299,8 +1300,7 @@ acpi_print_nfit(ACPI_NFIT_HEADER *nfit)
 #define PRINTFLAG(var, flag)	printflag((var), ACPI_NFIT_## flag, #flag)
 
 		printf("\tFlags=");
-		PRINTFLAG(mmap->Flags, ADD_ONLINE_ONLY);
-		PRINTFLAG(mmap->Flags, PROXIMITY_VALID);
+		PRINTFLAG(ctlreg->Flags, CONTROL_BUFFERED);
 		PRINTFLAG_END();
 
 #undef PRINTFLAG
