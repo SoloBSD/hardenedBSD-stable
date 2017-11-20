@@ -201,7 +201,6 @@ struct qla_host {
 
 	qla_rx_buf_t		*rxb_free;
 	uint32_t		rxb_free_count;
-	volatile uint32_t	posting;
 
 	/* stats */
 	uint32_t		err_m_getcl;
@@ -239,6 +238,7 @@ struct qla_host {
 	volatile const char 	*qla_lock;
 	volatile const char	*qla_unlock;
 	uint32_t		dbg_level;
+	uint32_t		enable_minidump;
 
 	uint8_t			fw_ver_str[32];
 
