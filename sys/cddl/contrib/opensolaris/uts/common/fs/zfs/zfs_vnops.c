@@ -4515,21 +4515,6 @@ zfs_setsecattr(vnode_t *vp, vsecattr_t *vsecp, int flag, cred_t *cr,
 }
 
 static int
-ioflags(int ioflags)
-{
-	int flags = 0;
-
-	if (ioflags & IO_APPEND)
-		flags |= FAPPEND;
-	if (ioflags & IO_NDELAY)
-		flags |= FNONBLOCK;
-	if (ioflags & IO_SYNC)
-		flags |= (FSYNC | FDSYNC | FRSYNC);
-
-	return (flags);
-}
-
-static int
 zfs_getpages(struct vnode *vp, vm_page_t *m, int count, int *rbehind,
     int *rahead)
 {
@@ -4716,7 +4701,6 @@ zfs_putpages(struct vnode *vp, vm_page_t *ma, size_t len, int flags,
 	}
 
 	if (zp->z_blksz < PAGE_SIZE) {
-		i = 0;
 		for (i = 0; len > 0; off += tocopy, len -= tocopy, i++) {
 			tocopy = len > PAGE_SIZE ? PAGE_SIZE : len;
 			va = zfs_map_page(ma[i], &sf);
@@ -4849,6 +4833,21 @@ zfs_freebsd_ioctl(ap)
 
 	return (zfs_ioctl(ap->a_vp, ap->a_command, (intptr_t)ap->a_data,
 	    ap->a_fflag, ap->a_cred, NULL, NULL));
+}
+
+static int
+ioflags(int ioflags)
+{
+	int flags = 0;
+
+	if (ioflags & IO_APPEND)
+		flags |= FAPPEND;
+	if (ioflags & IO_NDELAY)
+		flags |= FNONBLOCK;
+	if (ioflags & IO_SYNC)
+		flags |= (FSYNC | FDSYNC | FRSYNC);
+
+	return (flags);
 }
 
 static int
@@ -5404,30 +5403,25 @@ zfs_freebsd_pathconf(ap)
 	int error;
 
 	error = zfs_pathconf(ap->a_vp, ap->a_name, &val, curthread->td_ucred, NULL);
-	if (error == 0)
+	if (error == 0) {
 		*ap->a_retval = val;
-	else if (error == EOPNOTSUPP)
-		error = vop_stdpathconf(ap);
-	return (error);
-}
-
-static int
-zfs_freebsd_fifo_pathconf(ap)
-	struct vop_pathconf_args /* {
-		struct vnode *a_vp;
-		int a_name;
-		register_t *a_retval;
-	} */ *ap;
-{
+		return (error);
+	}
+	if (error != EOPNOTSUPP)
+		return (error);
 
 	switch (ap->a_name) {
-	case _PC_ACL_EXTENDED:
-	case _PC_ACL_NFS4:
-	case _PC_ACL_PATH_MAX:
-	case _PC_MAC_PRESENT:
-		return (zfs_freebsd_pathconf(ap));
+	case _PC_NAME_MAX:
+		*ap->a_retval = NAME_MAX;
+		return (0);
+	case _PC_PIPE_BUF:
+		if (ap->a_vp->v_type == VDIR || ap->a_vp->v_type == VFIFO) {
+			*ap->a_retval = PIPE_BUF;
+			return (0);
+		}
+		return (EINVAL);
 	default:
-		return (fifo_specops.vop_pathconf(ap));
+		return (vop_stdpathconf(ap));
 	}
 }
 
@@ -6041,7 +6035,7 @@ struct vop_vector zfs_fifoops = {
 	.vop_reclaim =		zfs_freebsd_reclaim,
 	.vop_setattr =		zfs_freebsd_setattr,
 	.vop_write =		VOP_PANIC,
-	.vop_pathconf = 	zfs_freebsd_fifo_pathconf,
+	.vop_pathconf = 	zfs_freebsd_pathconf,
 	.vop_fid =		zfs_freebsd_fid,
 	.vop_getacl =		zfs_freebsd_getacl,
 	.vop_setacl =		zfs_freebsd_setacl,

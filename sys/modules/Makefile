@@ -36,6 +36,7 @@ SUBDIR=	\
 	alq \
 	${_amd_ecc_inject} \
 	${_amdsbwd} \
+	${_amdsmn} \
 	${_amdtemp} \
 	amr \
 	${_an} \
@@ -242,7 +243,7 @@ SUBDIR=	\
 	mlx \
 	${_mlx4} \
 	${_mlx4ib} \
-	${_mlxen} \
+	${_mlx4en} \
 	${_mlx5} \
 	${_mlx5en} \
 	${_mlx5ib} \
@@ -356,6 +357,7 @@ SUBDIR=	\
 	snp \
 	sound \
 	${_speaker} \
+	spigen \
 	${_splash} \
 	${_sppp} \
 	ste \
@@ -624,6 +626,7 @@ _aesni=		aesni
 .endif
 _amd_ecc_inject=amd_ecc_inject
 _amdsbwd=	amdsbwd
+_amdsmn=	amdsmn
 _amdtemp=	amdtemp
 _arcmsr=	arcmsr
 _asmc=		asmc
@@ -660,16 +663,16 @@ _iwifw=		iwifw
 _iwmfw=		iwmfw
 _iwnfw=		iwnfw
 .endif
-.if ${MK_OFED} != "no" || defined(ALL_MODULES)
 _mlx4=		mlx4
-_mlx4ib=	mlx4ib
-_mlx5ib=	mlx5ib
-_mlxen=		mlxen
-.endif
 _mlx5=		mlx5
 .if (${MK_INET_SUPPORT} != "no" && ${MK_INET6_SUPPORT} != "no") || \
 	defined(ALL_MODULES)
+_mlx4en=	mlx4en
 _mlx5en=	mlx5en
+.endif
+.if ${MK_OFED} != "no" || defined(ALL_MODULES)
+_mlx4ib=	mlx4ib
+_mlx5ib=	mlx5ib
 .endif
 _mly=		mly
 .if ${MK_OFED} != "no" || defined(ALL_MODULES)

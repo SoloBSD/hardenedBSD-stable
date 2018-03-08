@@ -24,6 +24,9 @@ _srcconf_included_:
 .MAKE.MODE+=	curdirOk=yes
 .endif
 
+# The kernel build always expects .OBJDIR=.CURDIR.
+.OBJDIR: ${.CURDIR}
+
 # Can be overridden by makeoptions or /etc/make.conf
 KERNEL_KO?=	kernel
 KERNEL?=	kernel
@@ -108,6 +111,10 @@ CFLAGS+=	${CONF_CFLAGS}
 
 # Optional linting. This can be overridden in /etc/make.conf.
 LINTFLAGS=	${LINTOBJKERNFLAGS}
+
+.if ${MACHINE_CPUARCH} == "amd64"
+LDFLAGS+=	-Wl,-z max-page-size=2097152 -Wl,-z common-page-size=4096
+.endif
 
 NORMAL_C= ${CC} -c ${CFLAGS} ${WERROR} ${PROF} ${.IMPSRC}
 NORMAL_S= ${CC:N${CCACHE_BIN}} -c ${ASM_CFLAGS} ${WERROR} ${.IMPSRC}

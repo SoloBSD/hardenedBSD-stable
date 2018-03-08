@@ -441,8 +441,8 @@ more:
 	if (ib != 0 && pageout_count < vm_pageout_page_count)
 		goto more;
 
-	return (vm_pageout_flush(&mc[page_base], pageout_count, 0, 0, NULL,
-	    NULL));
+	return (vm_pageout_flush(&mc[page_base], pageout_count,
+	    VM_PAGER_PUT_NOREUSE, 0, NULL, NULL));
 }
 
 /*
@@ -1863,6 +1863,7 @@ vm_pageout(void)
 #endif
 
 	swap_pager_swap_init();
+	snprintf(curthread->td_name, sizeof(curthread->td_name), "dom0");
 	error = kthread_add(vm_pageout_laundry_worker, NULL, curproc, NULL,
 	    0, 0, "laundry: dom0");
 	if (error != 0)
