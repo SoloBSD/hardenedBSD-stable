@@ -1438,9 +1438,9 @@ put_nvlist(zfs_cmd_t *zc, nvlist_t *nvl)
 }
 
 int
-getzfsvfs_impl(objset_t *os, zfsvfs_t **zfvp)
+getzfsvfs_impl(objset_t *os, vfs_t **vfsp)
 {
-	vfs_t *vfsp;
+	zfsvfs_t *zfvp;
 	int error = 0;
 
 	if (dmu_objset_type(os) != DMU_OST_ZFS) {
@@ -1448,9 +1448,10 @@ getzfsvfs_impl(objset_t *os, zfsvfs_t **zfvp)
 	}
 
 	mutex_enter(&os->os_user_ptr_lock);
-	*zfvp = dmu_objset_get_user(os);
-	if (*zfvp) {
-		vfs_ref((*zfvp)->z_vfs);
+	zfvp = dmu_objset_get_user(os);
+	if (zfvp) {
+		*vfsp = zfvp->z_vfs;
+		vfs_ref(zfvp->z_vfs);
 	} else {
 		error = SET_ERROR(ESRCH);
 	}
@@ -1458,57 +1459,31 @@ getzfsvfs_impl(objset_t *os, zfsvfs_t **zfvp)
 	return (error);
 }
 
-#ifdef illumos
 int
 getzfsvfs(const char *dsname, zfsvfs_t **zfvp)
 {
 	objset_t *os;
+	vfs_t *vfsp;
 	int error;
 
 	error = dmu_objset_hold(dsname, FTAG, &os);
 	if (error != 0)
 		return (error);
-
-	error = getzfsvfs_impl(os, zfvp);
+	error = getzfsvfs_impl(os, &vfsp);
 	dmu_objset_rele(os, FTAG);
-	return (error);
-}
-
-#else
-
-static int
-getzfsvfs_ref(const char *dsname, zfsvfs_t **zfvp)
-{
-	objset_t *os;
-	int error;
-
-	error = dmu_objset_hold(dsname, FTAG, &os);
 	if (error != 0)
 		return (error);
 
-	error = getzfsvfs_impl(os, zfvp);
-	dmu_objset_rele(os, FTAG);
-	return (error);
-}
-
-int
-getzfsvfs(const char *dsname, zfsvfs_t **zfvp)
-{
-	objset_t *os;
-	int error;
-
-	error = getzfsvfs_ref(dsname, zfvp);
-	if (error != 0)
-		return (error);
-	error = vfs_busy((*zfvp)->z_vfs, 0);
-	vfs_rel((*zfvp)->z_vfs);
+	error = vfs_busy(vfsp, 0);
+	vfs_rel(vfsp);
 	if (error != 0) {
 		*zfvp = NULL;
 		error = SET_ERROR(ESRCH);
+	} else {
+		*zfvp = vfsp->vfs_data;
 	}
 	return (error);
 }
-#endif
 
 /*
  * Find a zfsvfs_t for a mounted filesystem, or create our own, in which
@@ -3572,7 +3547,7 @@ zfs_unmount_snap(const char *snapname)
 	if (strchr(snapname, '@') == NULL)
 		return;
 
-	int err = getzfsvfs_ref(snapname, &zfsvfs);
+	int err = getzfsvfs(snapname, &zfsvfs);
 	if (err != 0) {
 		ASSERT3P(zfsvfs, ==, NULL);
 		return;
@@ -3594,6 +3569,8 @@ zfs_unmount_snap(const char *snapname)
 #ifdef illumos
 	(void) dounmount(vfsp, MS_FORCE, kcred);
 #else
+	vfs_ref(vfsp);
+	vfs_unbusy(vfsp);
 	(void) dounmount(vfsp, MS_FORCE, curthread);
 #endif
 }
@@ -3851,11 +3828,14 @@ zfs_ioc_rollback(const char *fsname, nvlist_t *innvl, nvlist_t *outnvl)
 
 	(void) nvlist_lookup_string(innvl, "target", &target);
 	if (target != NULL) {
-		int fslen = strlen(fsname);
+		const char *cp = strchr(target, '@');
 
-		if (strncmp(fsname, target, fslen) != 0)
-			return (SET_ERROR(EINVAL));
-		if (target[fslen] != '@')
+		/*
+		 * The snap name must contain an @, and the part after it must
+		 * contain only valid characters.
+		 */
+		if (cp == NULL ||
+		    zfs_component_namecheck(cp + 1, NULL, NULL) != 0)
 			return (SET_ERROR(EINVAL));
 	}
 
@@ -5112,14 +5092,14 @@ zfs_ioc_userspace_upgrade(zfs_cmd_t *zc)
 			 * objset needs to be closed & reopened (to grow the
 			 * objset_phys_t).  Suspend/resume the fs will do that.
 			 */
-			dsl_dataset_t *ds;
+			dsl_dataset_t *ds, *newds;
 
 			ds = dmu_objset_ds(zfsvfs->z_os);
 			error = zfs_suspend_fs(zfsvfs);
 			if (error == 0) {
-				dmu_objset_refresh_ownership(zfsvfs->z_os,
+				dmu_objset_refresh_ownership(ds, &newds,
 				    zfsvfs);
-				error = zfs_resume_fs(zfsvfs, ds);
+				error = zfs_resume_fs(zfsvfs, newds);
 			}
 		}
 		if (error == 0)

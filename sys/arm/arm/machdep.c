@@ -66,11 +66,13 @@ __FBSDID("$FreeBSD$");
 #include <sys/linker.h>
 #include <sys/msgbuf.h>
 #include <sys/pax.h>
+#include <sys/reboot.h>
 #include <sys/rwlock.h>
 #include <sys/sched.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysent.h>
 #include <sys/sysproto.h>
+#include <sys/vmmeter.h>
 
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
@@ -772,6 +774,16 @@ set_stackptrs(int cpu)
 }
 #endif
 
+static void
+arm_kdb_init(void)
+{
+
+	kdb_init();
+#ifdef KDB
+	if (boothowto & RB_KDB)
+		kdb_enter(KDB_WHY_BOOTFLAGS, "Boot flags requested debugger");
+#endif
+}
 
 #ifdef FDT
 #if __ARM_ARCH < 6
@@ -1040,7 +1052,7 @@ initarm(struct arm_boot_params *abp)
 
 	init_param2(physmem);
 	dbg_monitor_init();
-	kdb_init();
+	arm_kdb_init();
 
 	return ((void *)(kernelstack.pv_va + USPACE_SVC_STACK_TOP -
 	    sizeof(struct pcb)));
@@ -1249,7 +1261,9 @@ initarm(struct arm_boot_params *abp)
 	/* Init message buffer. */
 	msgbufinit(msgbufp, msgbufsize);
 	dbg_monitor_init();
-	kdb_init();
+	arm_kdb_init();
+	/* Apply possible BP hardening. */
+	cpuinfo_init_bp_hardening();
 	return ((void *)STACKALIGN(thread0.td_pcb));
 
 }
