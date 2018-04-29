@@ -1015,6 +1015,13 @@ create_pagetables(vm_paddr_t *firstaddr)
 	 */
 	*firstaddr = round_2mpage(*firstaddr);
 
+	/*
+	 * Because we map the physical blocks in 2M pages, adjust firstaddr
+	 * to record the physical blocks we've actually mapped into kernel
+	 * virtual address space.
+	 */
+	*firstaddr = round_2mpage(*firstaddr);
+
 	/* And connect up the PD to the PDP (leaving room for L4 pages) */
 	pdp_p = (pdp_entry_t *)(KPDPphys + ptoa(KPML4I - KPML4BASE));
 	for (i = 0; i < nkpdpe; i++)
@@ -1297,7 +1304,35 @@ pmap_init(void)
 	struct pmap_preinit_mapping *ppim;
 	vm_page_t mpte;
 	vm_size_t s;
-	int error, i, pv_npg;
+	int error, i, pv_npg, ret, skz63;
+
+	/* Detect bare-metal Skylake Server and Skylake-X. */
+	if (vm_guest == VM_GUEST_NO && cpu_vendor_id == CPU_VENDOR_INTEL &&
+	    CPUID_TO_FAMILY(cpu_id) == 0x6 && CPUID_TO_MODEL(cpu_id) == 0x55) {
+		/*
+		 * Skylake-X errata SKZ63. Processor May Hang When
+		 * Executing Code In an HLE Transaction Region between
+		 * 40000000H and 403FFFFFH.
+		 *
+		 * Mark the pages in the range as preallocated.  It
+		 * seems to be impossible to distinguish between
+		 * Skylake Server and Skylake X.
+		 */
+		skz63 = 1;
+		TUNABLE_INT_FETCH("hw.skz63_enable", &skz63);
+		if (skz63 != 0) {
+			if (bootverbose)
+				printf("SKZ63: skipping 4M RAM starting "
+				    "at physical 1G\n");
+			for (i = 0; i < atop(0x400000); i++) {
+				ret = vm_page_blacklist_add(0x40000000 +
+				    ptoa(i), FALSE);
+				if (!ret && bootverbose)
+					printf("page at %#lx already used\n",
+					    0x40000000 + ptoa(i));
+			}
+		}
+	}
 
 	/*
 	 * Initialize the vm page array entries for the kernel pmap's
@@ -1310,7 +1345,9 @@ pmap_init(void)
 		    ("pmap_init: page table page is out of range"));
 		mpte->pindex = pmap_pde_pindex(KERNBASE) + i;
 		mpte->phys_addr = KPTphys + (i << PAGE_SHIFT);
+		mpte->wire_count = 1;
 	}
+	atomic_add_int(&vm_cnt.v_wire_count, nkpt);
 
 	/*
 	 * If the kernel is running on a virtual machine, then it must assume

@@ -291,6 +291,7 @@ SUBDIR=	\
 	${_nvram} \
 	${_nxge} \
 	oce \
+	${_ocs_fc} \
 	otus \
 	${_otusfw} \
 	ow \
@@ -603,6 +604,7 @@ _lio=		lio
 .endif
 _nctgpio=	nctgpio
 _ndis=		ndis
+_ocs_fc=	ocs_fc
 _pccard=	pccard
 .if ${MK_OFED} != "no" || defined(ALL_MODULES)
 _rdma=		rdma
@@ -812,11 +814,6 @@ _cloudabi32=	cloudabi32
 _cloudabi64=	cloudabi64
 .endif
 
-.endif
-
-.if ${MACHINE_ARCH:Marmv[67]*} != "" || ${MACHINE_CPUARCH} == "aarch64"
-_bcm283x_clkman=  bcm283x_clkman
-_bcm283x_pwm=  bcm283x_pwm
 .endif
 
 SUBDIR+=${MODULES_EXTRA}

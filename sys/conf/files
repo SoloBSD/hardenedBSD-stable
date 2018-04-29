@@ -160,12 +160,14 @@ cddl/contrib/opensolaris/common/zfs/zpool_prop.c			optional zfs compile-with "${
 cddl/contrib/opensolaris/common/zfs/zprop_common.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/vnode.c				optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/abd.c			optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/aggsum.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/arc.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/blkptr.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/bplist.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/bpobj.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/bptree.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/bqueue.c			optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/cityhash.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/dbuf.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/ddt.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/ddt_zap.c			optional zfs compile-with "${ZFS_C}"
@@ -203,6 +205,7 @@ cddl/contrib/opensolaris/uts/common/fs/zfs/sa.c				optional zfs compile-with "${
 cddl/contrib/opensolaris/uts/common/fs/zfs/sha256.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/skein_zfs.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/spa.c			optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/spa_checkpoint.c		optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/spa_config.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/spa_errlog.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/spa_history.c		optional zfs compile-with "${ZFS_C}"
@@ -216,12 +219,16 @@ cddl/contrib/opensolaris/uts/common/fs/zfs/unique.c			optional zfs compile-with 
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_cache.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_file.c			optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_indirect.c		optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_indirect_births.c	optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_indirect_mapping.c	optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_geom.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_label.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_mirror.c		optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_missing.c		optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_queue.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_raidz.c			optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_removal.c		optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/vdev_root.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/zap.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/zap_leaf.c			optional zfs compile-with "${ZFS_C}"
@@ -255,6 +262,7 @@ cddl/contrib/opensolaris/uts/common/fs/zfs/zio_compress.c		optional zfs compile-
 cddl/contrib/opensolaris/uts/common/fs/zfs/zio_inject.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/zle.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/zrlock.c			optional zfs compile-with "${ZFS_C}"
+cddl/contrib/opensolaris/uts/common/fs/zfs/zthr.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/fs/zfs/zvol.c			optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/os/callb.c				optional zfs compile-with "${ZFS_C}"
 cddl/contrib/opensolaris/uts/common/os/fm.c				optional zfs compile-with "${ZFS_C}"
@@ -1682,7 +1690,8 @@ dev/extres/clk/clk_fixed.c	optional ext_resources clk
 dev/extres/clk/clk_gate.c	optional ext_resources clk
 dev/extres/clk/clk_mux.c	optional ext_resources clk
 dev/extres/phy/phy.c		optional ext_resources phy
-dev/extres/phy/phy_if.m		optional ext_resources phy
+dev/extres/phy/phydev_if.m	optional ext_resources phy
+dev/extres/phy/phynode_if.m	optional ext_resources phy
 dev/extres/hwreset/hwreset.c	optional ext_resources hwreset
 dev/extres/hwreset/hwreset_if.m	optional ext_resources hwreset
 dev/extres/regulator/regdev_if.m	optional ext_resources regulator
@@ -2497,6 +2506,27 @@ dev/oce/oce_mbox.c		optional oce pci
 dev/oce/oce_queue.c		optional oce pci
 dev/oce/oce_sysctl.c		optional oce pci
 dev/oce/oce_util.c		optional oce pci
+dev/ocs_fc/ocs_pci.c		optional ocs_fc pci
+dev/ocs_fc/ocs_ioctl.c		optional ocs_fc pci
+dev/ocs_fc/ocs_os.c		optional ocs_fc pci
+dev/ocs_fc/ocs_utils.c		optional ocs_fc pci
+dev/ocs_fc/ocs_hw.c		optional ocs_fc pci
+dev/ocs_fc/ocs_hw_queues.c	optional ocs_fc pci
+dev/ocs_fc/sli4.c		optional ocs_fc pci
+dev/ocs_fc/ocs_sm.c		optional ocs_fc pci
+dev/ocs_fc/ocs_device.c		optional ocs_fc pci
+dev/ocs_fc/ocs_xport.c		optional ocs_fc pci
+dev/ocs_fc/ocs_domain.c		optional ocs_fc pci
+dev/ocs_fc/ocs_sport.c		optional ocs_fc pci
+dev/ocs_fc/ocs_els.c		optional ocs_fc pci
+dev/ocs_fc/ocs_fabric.c		optional ocs_fc pci
+dev/ocs_fc/ocs_io.c		optional ocs_fc pci
+dev/ocs_fc/ocs_node.c		optional ocs_fc pci
+dev/ocs_fc/ocs_scsi.c		optional ocs_fc pci
+dev/ocs_fc/ocs_unsol.c		optional ocs_fc pci
+dev/ocs_fc/ocs_ddump.c		optional ocs_fc pci
+dev/ocs_fc/ocs_mgmt.c		optional ocs_fc pci
+dev/ocs_fc/ocs_cam.c		optional ocs_fc pci
 dev/ofw/ofw_bus_if.m		optional fdt
 dev/ofw/ofw_bus_subr.c		optional fdt
 dev/ofw/ofw_fdt.c		optional fdt
@@ -4081,7 +4111,7 @@ netinet/sctp_asconf.c		optional inet sctp | inet6 sctp
 netinet/sctp_auth.c		optional inet sctp | inet6 sctp
 netinet/sctp_bsd_addr.c		optional inet sctp | inet6 sctp
 netinet/sctp_cc_functions.c	optional inet sctp | inet6 sctp
-netinet/sctp_crc32.c		optional inet sctp | inet6 sctp
+netinet/sctp_crc32.c		optional inet | inet6
 netinet/sctp_indata.c		optional inet sctp | inet6 sctp
 netinet/sctp_input.c		optional inet sctp | inet6 sctp
 netinet/sctp_output.c		optional inet sctp | inet6 sctp
@@ -4188,7 +4218,8 @@ netpfil/ipfw/ip_dn_io.c		optional inet dummynet
 netpfil/ipfw/ip_dn_glue.c	optional inet dummynet
 netpfil/ipfw/ip_fw2.c		optional inet ipfirewall
 netpfil/ipfw/ip_fw_bpf.c	optional inet ipfirewall
-netpfil/ipfw/ip_fw_dynamic.c	optional inet ipfirewall
+netpfil/ipfw/ip_fw_dynamic.c	optional inet ipfirewall \
+	compile-with "${NORMAL_C} -I$S/contrib/ck/include"
 netpfil/ipfw/ip_fw_eaction.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_log.c	optional inet ipfirewall
 netpfil/ipfw/ip_fw_pfil.c	optional inet ipfirewall
