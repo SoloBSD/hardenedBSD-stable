@@ -756,8 +756,8 @@ sctp_stop_timers_for_shutdown(struct sctp_tcb *stcb)
 }
 
 /*
- * a list of sizes based on typical mtu's, used only if next hop size not
- * returned.
+ * A list of sizes based on typical mtu's, used only if next hop size not
+ * returned. These values MUST be multiples of 4 and MUST be ordered.
  */
 static uint32_t sctp_mtu_sizes[] = {
 	68,
@@ -766,29 +766,32 @@ static uint32_t sctp_mtu_sizes[] = {
 	512,
 	544,
 	576,
-	1006,
+	1004,
 	1492,
 	1500,
 	1536,
-	2002,
+	2000,
 	2048,
 	4352,
 	4464,
 	8166,
-	17914,
+	17912,
 	32000,
-	65535
+	65532
 };
 
 /*
- * Return the largest MTU smaller than val. If there is no
- * entry, just return val.
+ * Return the largest MTU in sctp_mtu_sizes smaller than val.
+ * If val is smaller than the minimum, just return the largest
+ * multiple of 4 smaller or equal to val.
+ * Ensure that the result is a multiple of 4.
  */
 uint32_t
 sctp_get_prev_mtu(uint32_t val)
 {
 	uint32_t i;
 
+	val &= 0xfffffffc;
 	if (val <= sctp_mtu_sizes[0]) {
 		return (val);
 	}
@@ -797,12 +800,16 @@ sctp_get_prev_mtu(uint32_t val)
 			break;
 		}
 	}
+	KASSERT((sctp_mtu_sizes[i - 1] & 0x00000003) == 0,
+	    ("sctp_mtu_sizes[%u] not a multiple of 4", i - 1));
 	return (sctp_mtu_sizes[i - 1]);
 }
 
 /*
- * Return the smallest MTU larger than val. If there is no
- * entry, just return val.
+ * Return the smallest MTU in sctp_mtu_sizes larger than val.
+ * If val is larger than the maximum, just return the largest multiple of 4 smaller
+ * or equal to val.
+ * Ensure that the result is a multiple of 4.
  */
 uint32_t
 sctp_get_next_mtu(uint32_t val)
@@ -810,8 +817,11 @@ sctp_get_next_mtu(uint32_t val)
 	/* select another MTU that is just bigger than this one */
 	uint32_t i;
 
+	val &= 0xfffffffc;
 	for (i = 0; i < (sizeof(sctp_mtu_sizes) / sizeof(uint32_t)); i++) {
 		if (val < sctp_mtu_sizes[i]) {
+			KASSERT((sctp_mtu_sizes[i] & 0x00000003) == 0,
+			    ("sctp_mtu_sizes[%u] not a multiple of 4", i));
 			return (sctp_mtu_sizes[i]);
 		}
 	}
@@ -2658,6 +2668,13 @@ sctp_notify_assoc_change(uint16_t state, struct sctp_tcb *stcb,
 		notif_len = (unsigned int)sizeof(struct sctp_assoc_change);
 		if (abort != NULL) {
 			abort_len = ntohs(abort->ch.chunk_length);
+			/*
+			 * Only SCTP_CHUNK_BUFFER_SIZE are guaranteed to be
+			 * contiguous.
+			 */
+			if (abort_len > SCTP_CHUNK_BUFFER_SIZE) {
+				abort_len = SCTP_CHUNK_BUFFER_SIZE;
+			}
 		} else {
 			abort_len = 0;
 		}
@@ -3562,6 +3579,13 @@ sctp_notify_remote_error(struct sctp_tcb *stcb, uint16_t error, struct sctp_erro
 	}
 	if (chunk != NULL) {
 		chunk_len = ntohs(chunk->ch.chunk_length);
+		/*
+		 * Only SCTP_CHUNK_BUFFER_SIZE are guaranteed to be
+		 * contiguous.
+		 */
+		if (chunk_len > SCTP_CHUNK_BUFFER_SIZE) {
+			chunk_len = SCTP_CHUNK_BUFFER_SIZE;
+		}
 	} else {
 		chunk_len = 0;
 	}

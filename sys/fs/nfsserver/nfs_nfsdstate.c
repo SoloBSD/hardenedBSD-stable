@@ -178,9 +178,10 @@ nfsrv_setclient(struct nfsrv_descript *nd, struct nfsclient **new_clpp,
     nfsquad_t *clientidp, nfsquad_t *confirmp, NFSPROC_T *p)
 {
 	struct nfsclient *clp = NULL, *new_clp = *new_clpp;
-	int i, error = 0;
+	int i, error = 0, ret;
 	struct nfsstate *stp, *tstp;
 	struct sockaddr_in *sad, *rad;
+	struct nfsdsession *sep, *nsep;
 	int zapit = 0, gotit, hasstate = 0, igotlock;
 	static u_int64_t confirm_index = 0;
 
@@ -350,6 +351,15 @@ nfsrv_setclient(struct nfsrv_descript *nd, struct nfsclient **new_clpp,
 		 * can be thrown away once the SETCLIENTID_CONFIRM occurs.
 		 */
 		LIST_REMOVE(clp, lc_hash);
+
+		/* Get rid of all sessions on this clientid. */
+		LIST_FOREACH_SAFE(sep, &clp->lc_session, sess_list, nsep) {
+			ret = nfsrv_freesession(sep, NULL);
+			if (ret != 0)
+				printf("nfsrv_setclient: verifier changed free"
+				    " session failed=%d\n", ret);
+		}
+
 		new_clp->lc_flags |= LCL_NEEDSCONFIRM;
 		if ((nd->nd_flag & ND_NFSV41) != 0)
 			new_clp->lc_confirm.lval[0] = confirmp->lval[0] =
@@ -385,6 +395,7 @@ nfsrv_setclient(struct nfsrv_descript *nd, struct nfsclient **new_clpp,
 			LIST_FOREACH(tstp, &new_clp->lc_stateid[i], ls_hash)
 				tstp->ls_clp = new_clp;
 		}
+		LIST_INIT(&new_clp->lc_session);
 		LIST_INSERT_HEAD(NFSCLIENTHASH(new_clp->lc_clientid), new_clp,
 		    lc_hash);
 		nfsstatsv1.srvclients++;
@@ -449,6 +460,7 @@ nfsrv_setclient(struct nfsrv_descript *nd, struct nfsclient **new_clpp,
 			LIST_FOREACH(tstp, &new_clp->lc_stateid[i], ls_hash)
 				tstp->ls_clp = new_clp;
 		}
+		LIST_INIT(&new_clp->lc_session);
 		LIST_INSERT_HEAD(NFSCLIENTHASH(new_clp->lc_clientid), new_clp,
 		    lc_hash);
 		nfsstatsv1.srvclients++;
@@ -5946,17 +5958,32 @@ nfsrv_findsession(uint8_t *sessionid)
 int
 nfsrv_destroysession(struct nfsrv_descript *nd, uint8_t *sessionid)
 {
-	int error, samesess;
+	int error, igotlock, samesess;
 
 	samesess = 0;
-	if (!NFSBCMP(sessionid, nd->nd_sessionid, NFSX_V4SESSIONID)) {
+	if (!NFSBCMP(sessionid, nd->nd_sessionid, NFSX_V4SESSIONID) &&
+	    (nd->nd_flag & ND_HASSEQUENCE) != 0) {
 		samesess = 1;
 		if ((nd->nd_flag & ND_LASTOP) == 0)
 			return (NFSERR_BADSESSION);
 	}
+
+	/* Lock out other nfsd threads */
+	NFSLOCKV4ROOTMUTEX();
+	nfsv4_relref(&nfsv4rootfs_lock);
+	do {
+		igotlock = nfsv4_lock(&nfsv4rootfs_lock, 1, NULL,
+		    NFSV4ROOTLOCKMUTEXPTR, NULL);
+	} while (igotlock == 0);
+	NFSUNLOCKV4ROOTMUTEX();
+
 	error = nfsrv_freesession(NULL, sessionid);
 	if (error == 0 && samesess != 0)
 		nd->nd_flag &= ~ND_HASSEQUENCE;
+
+	NFSLOCKV4ROOTMUTEX();
+	nfsv4_unlock(&nfsv4rootfs_lock, 1);
+	NFSUNLOCKV4ROOTMUTEX();
 	return (error);
 }
 

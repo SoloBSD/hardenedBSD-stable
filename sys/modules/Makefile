@@ -353,6 +353,7 @@ SUBDIR=	\
 	siis \
 	sis \
 	sk \
+	${_smartpqi} \
 	smbfs \
 	sn \
 	${_snc} \
@@ -625,7 +626,9 @@ _aac=		aac
 _aacraid=	aacraid
 _acpi=		acpi
 .if ${MK_CRYPT} != "no" || defined(ALL_MODULES)
+.if ${COMPILER_TYPE} != "gcc" || ${COMPILER_VERSION} > 40201
 _aesni=		aesni
+.endif
 .endif
 _amd_ecc_inject=amd_ecc_inject
 _amdsbwd=	amdsbwd
@@ -721,6 +724,7 @@ _qlxgbe=	qlxgbe
 _qlnx=		qlnx
 .endif
 _sfxge=		sfxge
+_smartpqi=	smartpqi
 
 .if ${MK_BHYVE} != "no" || defined(ALL_MODULES)
 _vmm=		vmm

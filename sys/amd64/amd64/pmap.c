@@ -1025,8 +1025,7 @@ create_pagetables(vm_paddr_t *firstaddr)
 	/* And connect up the PD to the PDP (leaving room for L4 pages) */
 	pdp_p = (pdp_entry_t *)(KPDPphys + ptoa(KPML4I - KPML4BASE));
 	for (i = 0; i < nkpdpe; i++)
-		pdp_p[i + KPDPI] = (KPDphys + ptoa(i)) | X86_PG_RW | X86_PG_V |
-		    PG_U;
+		pdp_p[i + KPDPI] = (KPDphys + ptoa(i)) | X86_PG_RW | X86_PG_V;
 
 	/*
 	 * Now, set up the direct map region using 2MB and/or 1GB pages.  If
@@ -1052,7 +1051,7 @@ create_pagetables(vm_paddr_t *firstaddr)
 	}
 	for (j = 0; i < ndmpdp; i++, j++) {
 		pdp_p[i] = DMPDphys + ptoa(j);
-		pdp_p[i] |= X86_PG_RW | X86_PG_V | PG_U;
+		pdp_p[i] |= X86_PG_RW | X86_PG_V;
 	}
 
 	/*
@@ -1074,18 +1073,18 @@ create_pagetables(vm_paddr_t *firstaddr)
 	/* And recursively map PML4 to itself in order to get PTmap */
 	p4_p = (pml4_entry_t *)KPML4phys;
 	p4_p[PML4PML4I] = KPML4phys;
-	p4_p[PML4PML4I] |= X86_PG_RW | X86_PG_V | PG_U | pg_nx;
+	p4_p[PML4PML4I] |= X86_PG_RW | X86_PG_V | pg_nx;
 
 	/* Connect the Direct Map slot(s) up to the PML4. */
 	for (i = 0; i < ndmpdpphys; i++) {
 		p4_p[DMPML4I + i] = DMPDPphys + ptoa(i);
-		p4_p[DMPML4I + i] |= X86_PG_RW | X86_PG_V | PG_U;
+		p4_p[DMPML4I + i] |= X86_PG_RW | X86_PG_V;
 	}
 
 	/* Connect the KVA slots up to the PML4 */
 	for (i = 0; i < NKPML4E; i++) {
 		p4_p[KPML4BASE + i] = KPDPphys + ptoa(i);
-		p4_p[KPML4BASE + i] |= X86_PG_RW | X86_PG_V | PG_U;
+		p4_p[KPML4BASE + i] |= X86_PG_RW | X86_PG_V;
 	}
 }
 
@@ -1736,6 +1735,18 @@ pmap_invalidate_page(pmap_t pmap, vm_offset_t va)
 				if (cpuid != i)
 					pmap->pm_pcids[i].pm_gen = 0;
 			}
+
+			/*
+			 * The fence is between stores to pm_gen and the read of
+			 * the pm_active mask.  We need to ensure that it is
+			 * impossible for us to miss the bit update in pm_active
+			 * and simultaneously observe a non-zero pm_gen in
+			 * pmap_activate_sw(), otherwise TLB update is missed.
+			 * Without the fence, IA32 allows such an outcome.
+			 * Note that pm_active is updated by a locked operation,
+			 * which provides the reciprocal fence.
+			 */
+			atomic_thread_fence_seq_cst();
 		}
 		mask = &pmap->pm_active;
 	}
@@ -1807,6 +1818,8 @@ pmap_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva)
 				if (cpuid != i)
 					pmap->pm_pcids[i].pm_gen = 0;
 			}
+			/* See the comment in pmap_invalidate_page(). */
+			atomic_thread_fence_seq_cst();
 		}
 		mask = &pmap->pm_active;
 	}
@@ -1878,6 +1891,8 @@ pmap_invalidate_all(pmap_t pmap)
 				if (cpuid != i)
 					pmap->pm_pcids[i].pm_gen = 0;
 			}
+			/* See the comment in pmap_invalidate_page(). */
+			atomic_thread_fence_seq_cst();
 		}
 		mask = &pmap->pm_active;
 	}
@@ -2654,11 +2669,11 @@ pmap_pinit_pml4(vm_page_t pml4pg)
 	/* Wire in kernel global address entries. */
 	for (i = 0; i < NKPML4E; i++) {
 		pm_pml4[KPML4BASE + i] = (KPDPphys + ptoa(i)) | X86_PG_RW |
-		    X86_PG_V | PG_U;
+		    X86_PG_V;
 	}
 	for (i = 0; i < ndmpdpphys; i++) {
 		pm_pml4[DMPML4I + i] = (DMPDPphys + ptoa(i)) | X86_PG_RW |
-		    X86_PG_V | PG_U;
+		    X86_PG_V;
 	}
 
 	/* install self-referential address mapping entry(s) */
@@ -7383,8 +7398,9 @@ pmap_pcid_alloc(pmap_t pmap, u_int cpuid)
 
 	CRITICAL_ASSERT(curthread);
 	gen = PCPU_GET(pcid_gen);
-	if (!pti && (pmap->pm_pcids[cpuid].pm_pcid == PMAP_PCID_KERN ||
-	    pmap->pm_pcids[cpuid].pm_gen == gen))
+	if (pmap->pm_pcids[cpuid].pm_pcid == PMAP_PCID_KERN)
+		return (pti ? 0 : CR3_PCID_SAVE);
+	if (pmap->pm_pcids[cpuid].pm_gen == gen)
 		return (CR3_PCID_SAVE);
 	pcid_next = PCPU_GET(pcid_next);
 	KASSERT((!pti && pcid_next <= PMAP_PCID_OVERMAX) ||
@@ -7411,7 +7427,7 @@ pmap_activate_sw(struct thread *td)
 {
 	pmap_t oldpmap, pmap;
 	struct invpcid_descr d;
-	uint64_t cached, cr3, kcr3, ucr3;
+	uint64_t cached, cr3, kcr3, kern_pti_cached, ucr3;
 	register_t rflags;
 	u_int cpuid;
 
@@ -7460,11 +7476,10 @@ pmap_activate_sw(struct thread *td)
 		if (!invpcid_works)
 			rflags = intr_disable();
 
-		if (!cached || (cr3 & ~CR3_PCID_MASK) != pmap->pm_cr3) {
+		kern_pti_cached = pti ? 0 : cached;
+		if (!kern_pti_cached || (cr3 & ~CR3_PCID_MASK) != pmap->pm_cr3) {
 			load_cr3(pmap->pm_cr3 | pmap->pm_pcids[cpuid].pm_pcid |
-			    cached);
-			if (cached)
-				PCPU_INC(pm_save_cnt);
+			    kern_pti_cached);
 		}
 		PCPU_SET(curpmap, pmap);
 		if (pti) {
@@ -7472,13 +7487,13 @@ pmap_activate_sw(struct thread *td)
 			ucr3 = pmap->pm_ucr3 | pmap->pm_pcids[cpuid].pm_pcid |
 			    PMAP_PCID_USER_PT;
 
-			/*
-			 * Manually invalidate translations cached
-			 * from the user page table, which are not
-			 * flushed by reload of cr3 with the kernel
-			 * page table pointer above.
-			 */
-			if (pmap->pm_ucr3 != PMAP_NO_CR3) {
+			if (!cached && pmap->pm_ucr3 != PMAP_NO_CR3) {
+				/*
+				 * Manually invalidate translations cached
+				 * from the user page table.  They are not
+				 * flushed by reload of cr3 with the kernel
+				 * page table pointer above.
+				 */
 				if (invpcid_works) {
 					d.pcid = PMAP_PCID_USER_PT |
 					    pmap->pm_pcids[cpuid].pm_pcid;
@@ -7495,6 +7510,8 @@ pmap_activate_sw(struct thread *td)
 		}
 		if (!invpcid_works)
 			intr_restore(rflags);
+		if (cached)
+			PCPU_INC(pm_save_cnt);
 	} else if (cr3 != pmap->pm_cr3) {
 		load_cr3(pmap->pm_cr3);
 		PCPU_SET(curpmap, pmap);
@@ -8056,7 +8073,7 @@ pmap_pti_add_kva_locked(vm_offset_t sva, vm_offset_t eva, bool exec)
 	for (; sva < eva; sva += PAGE_SIZE) {
 		pte = pmap_pti_pte(sva, &unwire_pde);
 		pa = pmap_kextract(sva);
-		ptev = pa | X86_PG_RW | X86_PG_V | X86_PG_A |
+		ptev = pa | X86_PG_RW | X86_PG_V | X86_PG_A | X86_PG_G |
 		    (exec ? 0 : pg_nx) | pmap_cache_bits(kernel_pmap,
 		    VM_MEMATTR_DEFAULT, FALSE);
 		if (*pte == 0) {
