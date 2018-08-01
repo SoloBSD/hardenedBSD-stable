@@ -1118,7 +1118,7 @@ parsemsg_rfc3164_app_name_procid(char **msg, const char **app_name,
 	    "abcdefghijklmnopqrstuvwxyz"
 	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	    "0123456789"
-	    "_-");
+	    "_-/");
 	if (app_name_length == 0)
 		goto bad;
 	m += app_name_length;
@@ -1871,8 +1871,6 @@ fprintlog_rfc3164(struct filed *f, const char *hostname, const char *app_name,
 		/* Message written to files. */
 		iovlist_append(&il, timebuf);
 		iovlist_append(&il, " ");
-		iovlist_append(&il, hostname);
-		iovlist_append(&il, " ");
 
 		if (LogFacPri) {
 			iovlist_append(&il, "<");
@@ -1916,6 +1914,9 @@ fprintlog_rfc3164(struct filed *f, const char *hostname, const char *app_name,
 
 			iovlist_append(&il, "> ");
 		}
+
+		iovlist_append(&il, hostname);
+		iovlist_append(&il, " ");
 		break;
 	}
 
