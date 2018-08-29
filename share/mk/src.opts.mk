@@ -108,6 +108,7 @@ __DEFAULT_YES_OPTIONS = \
     GROFF \
     HAST \
     HBSD_UPDATE \
+    HBSDCONTROL \
     HTML \
     HYPERV \
     ICONV \
@@ -201,7 +202,6 @@ __DEFAULT_NO_OPTIONS = \
     LOADER_FIREWIRE \
     LOADER_FORCE_LE \
     NAND \
-    OFED \
     OFED_EXTRA \
     OPENLDAP \
     PORTSNAP \
@@ -323,6 +323,12 @@ __DEFAULT_NO_OPTIONS+=CXGBETOOL
 __DEFAULT_NO_OPTIONS+=MLX5TOOL
 .endif
 
+.if ${__T} == "amd64"
+__DEFAULT_YES_OPTIONS+=OFED
+.else
+__DEFAULT_NO_OPTIONS+=OFED
+.endif
+
 # HardenedBSD options
 .if ${__T} == "amd64" || ${__T} == "i386" || ${__T} == "aarch64"
 __DEFAULT_YES_OPTIONS+=PIE
@@ -335,6 +341,7 @@ __DEFAULT_YES_OPTIONS+=SAFESTACK
 .else
 __DEFAULT_NO_OPTIONS+=SAFESTACK
 .endif
+
 .include <bsd.mkopt.mk>
 
 #
