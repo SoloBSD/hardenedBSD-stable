@@ -145,6 +145,7 @@ static int relocate_object(Obj_Entry *obj, bool bind_now, Obj_Entry *rtldobj,
     int flags, RtldLockState *lockstate);
 static int relocate_objects(Obj_Entry *, bool, Obj_Entry *, int,
     RtldLockState *);
+static int resolve_object_ifunc(Obj_Entry *, bool, int, RtldLockState *);
 static int resolve_objects_ifunc(Obj_Entry *first, bool bind_now,
     int flags, RtldLockState *lockstate);
 static int rtld_dirname(const char *, char *);
@@ -733,14 +734,12 @@ _rtld(Elf_Addr *sp, func_ptr_type *exit_proc, Obj_Entry **objp)
     if (do_copy_relocations(obj_main) == -1)
 	rtld_die();
 
-    dbg("enforcing main obj relro");
-    if (obj_enforce_relro(obj_main) == -1)
-	rtld_die();
-
     if (getenv(_LD("DUMP_REL_POST")) != NULL) {
        dump_relocations(obj_main);
        exit (0);
     }
+
+    ifunc_init(aux);
 
     /*
      * Setup TLS for main thread.  This must be done after the
@@ -763,12 +762,15 @@ _rtld(Elf_Addr *sp, func_ptr_type *exit_proc, Obj_Entry **objp)
     r_debug_state(NULL, &obj_main->linkmap); /* say hello to gdb! */
 
     map_stacks_exec(NULL);
-    ifunc_init(aux);
 
     dbg("resolving ifuncs");
     if (resolve_objects_ifunc(obj_main,
       ld_bind_now != NULL && *ld_bind_now != '\0', SYMLOOK_EARLY,
       NULL) == -1)
+	rtld_die();
+
+    dbg("enforcing main obj relro");
+    if (obj_enforce_relro(obj_main) == -1)
 	rtld_die();
 
     if (!obj_main->crt_no_init) {
@@ -2981,9 +2983,11 @@ relocate_object(Obj_Entry *obj, bool bind_now, Obj_Entry *rtldobj,
 	if (reloc_plt(obj) == -1)
 		return (-1);
 	/* Relocate the jump slots if we are doing immediate binding. */
-	if (obj->bind_now || bind_now)
-		if (reloc_jmpslots(obj, flags, lockstate) == -1)
+	if (obj->bind_now || bind_now) {
+		if (reloc_jmpslots(obj, flags, lockstate) == -1 ||
+		    resolve_object_ifunc(obj, true, flags, lockstate) == -1)
 			return (-1);
+	}
 
 	/*
 	 * Process the non-PLT IFUNC relocations.  The relocations are
